@@ -32,38 +32,24 @@ int setup_connection(const char *host, struct addrinfo *res) {
 }
 
 void read_from_connection(int sockfd, char **buffer, ssize_t buf_size) {
-	char msg[] = "GET /robots.txt HTTP/1.1\r\n\r\n";
+	char msg[] = "GET /robots.txt HTTP/1.0\r\n\r\n";
 	ssize_t sent = send(sockfd, msg, sizeof(msg), 0);
 	if(sent < 0) {
 		fprintf(stderr, "send() failed\n");
 		exit(-1);
 	}
 
+	size_t nbytes = 0, rbytes = 0;
 	char buf[buf_size];
 	char *ptr = malloc(buf_size);
-	ssize_t nbytes, totalbytes = 0;
 	do {
-		memset(buf, 0, buf_size);
-		nbytes = recv(sockfd, buf, buf_size, 0);
-		totalbytes += nbytes;
-		char *tmp_ptr = realloc(ptr, totalbytes);
-		if(ptr == NULL) {
-			printf("Done with something!\n");
-			free(tmp_ptr);
-		} else
-			ptr = tmp_ptr;
+		rbytes = recv(sockfd, buf, buf_size, MSG_WAITALL);
+		buf[buf_size] = '\0';
+		nbytes += rbytes;
+		ptr = realloc(ptr, nbytes);
 		strcat(ptr, buf);
-	} while(nbytes > 0);
-	strcpy(*buffer, ptr);
-
-	// char buf[512];
-	// ssize_t bytes = recv(sockfd, buf, sizeof(buf), 0);
-	// if(bytes < 0) {
-	// 	fprintf(stderr, "recv() failed\n");
-	// 	exit(-1);
-	// }
-	// *buffer = malloc(sizeof(char) * strlen(buf));
-	// strcpy(*buffer, buf);
+		printf("%s\n", ptr);
+	} while(rbytes == buf_size);
 }
 
 int main(void) {
